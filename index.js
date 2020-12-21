@@ -23,6 +23,10 @@ ComfyJS.Init(twitchTvHandle);
 ComfyJS.onCommand = (user, command, message, flags, extra) => {
   console.log(`!${command} was typed in chat`);
 
+  if(command == "points") {
+    ComfyJS.Say("testing reply")
+  }
+
   if(command == "plinko") {
     let pointsWager = parseInt(message);
 
@@ -52,7 +56,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
           let tempResponse = responseText;
           userExistsinTable(user, pointsWager);
         });
-        /*
+        
         // add to active queue
         var data = 
         {
@@ -70,7 +74,6 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
         // send to active queue and add to player queue in js
         sendJSON(data, "https://api.airtable.com/v0/appe3WTSDmogEOAp7/ActiveQueue");
         playerQueue.push(user);
-        */
       }
     }
   }
@@ -121,7 +124,6 @@ function updateActiveQueue() {
 
     if(activeQueue["records"][0] != null) {
       let location = "?records[]=" + activeQueue["records"][0]["id"];
-      console.log(location);
       let strResponseHttpRequest = removeJSON(airtable_read_activeQueue, location, function(responseText) {});
     }
   });
@@ -185,7 +187,6 @@ function putJSON(userID, userName, userPoints, url) {
 // REMOVE CALL
 function removeJSON(url, location, callback) {
   let urlNew = url + location;
-  console.log(urlNew);
   var xhr = new XMLHttpRequest();
   xhr.onreadystatechange = function() { 
     if (xhr.readyState == 4 && xhr.status == 200)
