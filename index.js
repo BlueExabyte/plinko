@@ -54,26 +54,27 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
         };
         let strResponseHttpRequest = sendJSON(data, airtable_read_endpoint, function(responseText) {
           let tempResponse = responseText;
-          userExistsinTable(user, pointsWager);
-        });
-        
-        // add to active queue
-        var data = 
-        {
-          "records": [
-              {
-                  "fields": {
-                      "User": user,
-                      "Points": pointsWager,
-                      "ID": ""
+
+          if (tempResponse) {
+            // add to active queue
+            var data = 
+            {
+              "records": [
+                  {
+                      "fields": {
+                          "User": user,
+                          "Points": pointsWager,
+                          "PointTotal": initialPoints - pointsWager,
+                          "ID": "unknown"
+                      }
                   }
-              }
-          ]
-        };
-        
-        // send to active queue and add to player queue in js
-        sendJSON(data, "https://api.airtable.com/v0/appe3WTSDmogEOAp7/ActiveQueue");
-        playerQueue.push(user);
+              ]
+            };
+            
+            let strResponseHttpRequest = sendJSON(data, "https://api.airtable.com/v0/appe3WTSDmogEOAp7/ActiveQueue", function(responseText) {});
+            playerQueue.push(user);
+          }
+        });
       }
     }
   }
@@ -123,8 +124,10 @@ function updateActiveQueue() {
     
 
     if(activeQueue["records"][0] != null) {
-      let location = "?records[]=" + activeQueue["records"][0]["id"];
-      let strResponseHttpRequest = removeJSON(airtable_read_activeQueue, location, function(responseText) {});
+      setTimeout(function(){
+        let location = "?records[]=" + activeQueue["records"][0]["id"];
+        let strResponseHttpRequest = removeJSON(airtable_read_activeQueue, location, function(responseText) {});
+      }, 3000);
     }
   });
 }
