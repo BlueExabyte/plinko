@@ -1,3 +1,5 @@
+const apiKey1 = 'Bearer keynAF0BONvJvTIg6';
+
 /* Config */
 const twitchTvHandle = "BlueExabyte";
 const PAUSE_DURATION = 30 * 1000; // 30 seconds
@@ -23,58 +25,33 @@ ComfyJS.Init(twitchTvHandle);
 ComfyJS.onCommand = (user, command, message, flags, extra) => {
   console.log(`!${command} was typed in chat`);
 
-  if(command == "points") {
-    ComfyJS.Say("testing reply")
-  }
-
   if(command == "plinko") {
     let pointsWager = parseInt(message);
+    let userNameScore = userExistsinTablePlinko(user, pointsWager);
 
-    let userNameScore = userExistsinTable(user, pointsWager);
-
-    // if the user doesn't exist in the table
+    // if the person doesn't exist in airtable, make new entry
     if(userNameScore["exists"] == false) {
       let initialPoints = 100;
       let validWager = (0 <= initialPoints - pointsWager);
 
       // if the wager is valid
       if(validWager) {
-
-        // add a record
         var data = 
         {
             "records": [
                 {
                     "fields": {
                         "User": String(user),
-                        "Points": initialPoints - pointsWager
+                        "Points": initialPoints - pointsWager,
+                        "Wager": pointsWager,
+                        "Queue": true
                     }
                 }
             ]
         };
-        let strResponseHttpRequest = sendJSON(data, airtable_read_endpoint, function(responseText) {
-          let tempResponse = responseText;
 
-          if (tempResponse) {
-            // add to active queue
-            var data = 
-            {
-              "records": [
-                  {
-                      "fields": {
-                          "User": user,
-                          "Points": pointsWager,
-                          "PointTotal": initialPoints - pointsWager,
-                          "ID": "unknown"
-                      }
-                  }
-              ]
-            };
-            
-            let strResponseHttpRequest = sendJSON(data, "https://api.airtable.com/v0/appe3WTSDmogEOAp7/ActiveQueue", function(responseText) {});
-            playerQueue.push(user);
-          }
-        });
+        let strResponseHttpRequest = sendJSON(data, airtable_read_endpoint);
+        playerQueue.push(user);
       }
     }
   }
@@ -84,20 +61,19 @@ ComfyJS.onChat = (user, message, flags, self, extra) => {
   console.log(user + ":", message);
 };
 
-function load_home() {
-  document.getElementById("includedContent").innerHTML='<object type="text/html" data="test/index.html" width="400px" height="800px" ></object>';
+function load_plinko() {
+  document.getElementById("includedContent").innerHTML='<object type="text/html" data="plinko/index.html" width="400px" height="800px" ></object>';
 }
 
 // run through the queue every 10 seconds
 window.setInterval(function(){
-  updateActiveQueue();
   console.log(playerQueue);
   if(playerQueue.length > 0)  {
     let playerName = document.getElementById("playerName");
     playerName.innerHTML = "<h1>"+ String(playerQueue[0]) + "</h1>";
     let queueList = document.getElementById("queueList");
     queueList.innerHTML = "Queue: "+ String(playerQueue);
-    load_home();
+    load_plinko();
     
     playerQueue.splice(0, 1);
   }
@@ -118,20 +94,6 @@ function updateAirtable() {
   });
 }
 
-function updateActiveQueue() {
-  let strResponseHttpRequest = httpGetAsync(airtable_read_activeQueue, function(responseText) {
-    activeQueue = JSON.parse(responseText);
-    
-
-    if(activeQueue["records"][0] != null) {
-      setTimeout(function(){
-        let location = "?records[]=" + activeQueue["records"][0]["id"];
-        let strResponseHttpRequest = removeJSON(airtable_read_activeQueue, location, function(responseText) {});
-      }, 3000);
-    }
-  });
-}
-
 // GET CALL
 function httpGetAsync(url, callback)
 {
@@ -141,7 +103,7 @@ function httpGetAsync(url, callback)
           callback(xmlHttp.responseText);
     }
     xmlHttp.open("GET", url, true);
-    xmlHttp.setRequestHeader('Authorization', 'Bearer keynAF0BONvJvTIg6');
+    xmlHttp.setRequestHeader('Authorization', apiKey1);
     xmlHttp.send(null);
     return xmlHttp.responseText;
 }
@@ -156,32 +118,20 @@ function sendJSON(data, url, callback) {
         callback(xhr.responseText);
   }
   xhr.open("POST", url);
-  xhr.setRequestHeader('Authorization', 'Bearer keynAF0BONvJvTIg6');
+  xhr.setRequestHeader('Authorization', apiKey1);
   xhr.setRequestHeader("Content-Type", "application/json");
   xhr.send(json);
   return xhr.responseText;
 }
 
 // PUT CALL
-function putJSON(userID, userName, userPoints, url) {
-  let data =
-  {
-    "records": [
-        {
-            "id": userID,
-            "fields": {
-                "User": userName,
-                "Points": userPoints
-            }
-        }
-    ]
-  };
+function putJSON(data, url) {
 
   var json = JSON.stringify(data);
 
   var xhr = new XMLHttpRequest();
   xhr.open("PUT", url);
-  xhr.setRequestHeader('Authorization', 'Bearer keynAF0BONvJvTIg6');
+  xhr.setRequestHeader('Authorization', apiKey1);
   xhr.setRequestHeader("Content-Type", "application/json");
   xhr.send(json);
   return xhr.responseText;
@@ -196,7 +146,7 @@ function removeJSON(url, location, callback) {
         callback(xhr.responseText);
   }
   xhr.open("DELETE", urlNew);
-  xhr.setRequestHeader('Authorization', 'Bearer keynAF0BONvJvTIg6');
+  xhr.setRequestHeader('Authorization', apiKey1);
   xhr.setRequestHeader("Content-Type", "application/json");
   xhr.send(null);
   return xhr.responseText;
@@ -204,11 +154,12 @@ function removeJSON(url, location, callback) {
 // --------------------------------------------------------------------------------------------------
 
 // check if user exists in table, if so check if wager is viable and add to active queue
-function userExistsinTable(userName, pointsWager) {
+function userExistsinTablePlinko(userName, pointsWager) {
   updateAirtable();
   let tempScore = -1;
   let tempExists = false;
   let p = airtableValues["records"]
+
   for (var key of Object.keys(p)) {
     if(p[key]["fields"]["User"] == userName) {
       tempScore = Number(p[key]["fields"]["Points"]);
@@ -216,23 +167,22 @@ function userExistsinTable(userName, pointsWager) {
       
       let validWager = (0 <= tempScore - pointsWager);
 
-      var data = 
-      {
-        "records": [
-            {
-                "fields": {
-                    "User": userName,
-                    "Points": pointsWager,
-                    "PointTotal": tempScore - pointsWager,
-                    "ID": p[key]["id"]
-                }
-            }
-        ]
-      };
-
       if(validWager) {
-        putJSON(p[key]["id"], userName, tempScore - pointsWager, airtable_read_endpoint);
-        let strResponseHttpRequest = sendJSON(data, "https://api.airtable.com/v0/appe3WTSDmogEOAp7/ActiveQueue", function(responseText) {});
+        let newData = 
+        {
+          "records": [
+              {
+                  "id": p[key]["id"],
+                  "fields": {
+                      "User": userName,
+                      "Points": tempScore - pointsWager,
+                      "Wager": pointsWager,
+                      "Queue": true
+                  }
+              }
+          ]
+        };
+        putJSON(newData, airtable_read_endpoint);
         playerQueue.push(userName);
       }
     }
