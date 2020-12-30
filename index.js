@@ -11,6 +11,7 @@ const img = new Image();
 const queue = new Queue();
 
 let playerQueue = [];
+let coinPlayerQueue = [];
 let airtable_read_endpoint = "https://api.airtable.com/v0/appe3WTSDmogEOAp7/Plinko"
 let airtable_read_activeQueue = "https://api.airtable.com/v0/appe3WTSDmogEOAp7/ActiveQueue"
 let airtableValues = null;
@@ -25,9 +26,40 @@ ComfyJS.Init(twitchTvHandle);
 ComfyJS.onCommand = (user, command, message, flags, extra) => {
   console.log(`!${command} was typed in chat`);
 
+  if(command == "coin") {
+    let pointsWager = parseInt(message);
+    let userNameScore = userExistsinTablePlinko(user, pointsWager, coinPlayerQueue);
+
+    // if the person doesn't exist in airtable, make new entry
+    if(userNameScore["exists"] == false) {
+      let initialPoints = 100;
+      let validWager = (0 <= initialPoints - pointsWager);
+
+      // if the wager is valid
+      if(validWager) {
+        var data = 
+        {
+            "records": [
+                {
+                    "fields": {
+                        "User": String(user),
+                        "Points": initialPoints - pointsWager,
+                        "Wager": pointsWager,
+                        "Queue": true
+                    }
+                }
+            ]
+        };
+
+        let strResponseHttpRequest = sendJSON(data, airtable_read_endpoint);
+        coinPlayerQueue.push(user);
+      }
+    }
+  }
+
   if(command == "plinko") {
     let pointsWager = parseInt(message);
-    let userNameScore = userExistsinTablePlinko(user, pointsWager);
+    let userNameScore = userExistsinTablePlinko(user, pointsWager, playerQueue);
 
     // if the person doesn't exist in airtable, make new entry
     if(userNameScore["exists"] == false) {
@@ -65,22 +97,22 @@ function load_plinko() {
   document.getElementById("includedContent").innerHTML='<object type="text/html" data="plinko/index.html" width="400px" height="800px" ></object>';
 }
 
+function load_coin() {
+  document.getElementById("includedContent").innerHTML='<object type="text/html" data="coin/index.html" width="400px" height="400px" ></object>';
+}
+
 // run through the queue every 10 seconds
 window.setInterval(function(){
   console.log(playerQueue);
   if(playerQueue.length > 0)  {
-    //let playerName = document.getElementById("playerName");
-    //playerName.innerHTML = "<h1>"+ String(playerQueue[0]) + "</h1>";
-    //let queueList = document.getElementById("queueList");
-    //queueList.innerHTML = "Queue: "+ String(playerQueue);
     load_plinko();
-    
     playerQueue.splice(0, 1);
   }
+  else if (coinPlayerQueue.length > 0){
+    load_coin();
+    coinPlayerQueue.splice(0, 1);
+  }
   else {
-
-    document.getElementById("playerName").innerHTML = "";
-    document.getElementById("queueList").innerHTML = "";
     document.getElementById("includedContent").innerHTML = "";
   }
 }, 10000);
@@ -154,7 +186,7 @@ function removeJSON(url, location, callback) {
 // --------------------------------------------------------------------------------------------------
 
 // check if user exists in table, if so check if wager is viable and add to active queue
-function userExistsinTablePlinko(userName, pointsWager) {
+function userExistsinTablePlinko(userName, pointsWager, queueObj) {
   updateAirtable();
   let tempScore = -1;
   let tempExists = false;
@@ -183,7 +215,7 @@ function userExistsinTablePlinko(userName, pointsWager) {
           ]
         };
         putJSON(newData, airtable_read_endpoint);
-        playerQueue.push(userName);
+        queueObj.push(userName);
       }
     }
   }
