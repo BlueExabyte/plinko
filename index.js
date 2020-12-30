@@ -69,10 +69,10 @@ function load_plinko() {
 window.setInterval(function(){
   console.log(playerQueue);
   if(playerQueue.length > 0)  {
-    let playerName = document.getElementById("playerName");
-    playerName.innerHTML = "<h1>"+ String(playerQueue[0]) + "</h1>";
-    let queueList = document.getElementById("queueList");
-    queueList.innerHTML = "Queue: "+ String(playerQueue);
+    //let playerName = document.getElementById("playerName");
+    //playerName.innerHTML = "<h1>"+ String(playerQueue[0]) + "</h1>";
+    //let queueList = document.getElementById("queueList");
+    //queueList.innerHTML = "Queue: "+ String(playerQueue);
     load_plinko();
     
     playerQueue.splice(0, 1);
