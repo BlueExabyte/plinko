@@ -27,7 +27,14 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
   console.log(`!${command} was typed in chat`);
 
   if(command == "coin") {
-    let pointsWager = parseInt(message);
+    let pointsWager = 0;
+    if((message === "all") || (message === "ALL") || (message === "max") || (message === "MAX")) {
+      pointsWager = getPlayerScore(user);
+    }
+    else {
+      pointsWager = parseInt(message);
+    }
+
     let userNameScore = userExistsinTablePlinko(user, pointsWager, coinPlayerQueue);
 
     // if the person doesn't exist in airtable, make new entry
@@ -58,7 +65,14 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
   }
 
   if(command == "plinko") {
-    let pointsWager = parseInt(message);
+    let pointsWager = 0;
+    if((message === "all") || (message === "ALL") || (message === "max") || (message === "MAX")) {
+      pointsWager = getPlayerScore(user);
+    }
+    else {
+      pointsWager = parseInt(message);
+    }
+
     let userNameScore = userExistsinTablePlinko(user, pointsWager, playerQueue);
 
     // if the person doesn't exist in airtable, make new entry
@@ -220,4 +234,16 @@ function userExistsinTablePlinko(userName, pointsWager, queueObj) {
     }
   }
   return {"score": tempScore, "exists": tempExists};
+}
+
+// return players current score, used for max and all wagers
+function getPlayerScore(userName) {
+  updateAirtable();
+  let p = airtableValues["records"]
+
+  for (var key of Object.keys(p)) {
+    if(p[key]["fields"]["User"] == userName) {
+      return p[key]["fields"]["Points"]
+    }
+  }
 }
